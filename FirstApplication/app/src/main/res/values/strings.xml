@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Rank Point Management</string>
+    <string name="hint">ランクポイントを入力してください</string>
+    <string name="decisionBtn">決定</string>
+</resources>

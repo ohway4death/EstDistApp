@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">My accelarator</string>
+    <string name="x">Ax</string>
+    <string name="y">Ay</string>
+    <string name="z">Az</string>
+
+    <string name="Mx">Mx</string>
+    <string name="My">My</string>
+    <string name="Mz">Mz</string>
+
+    <string name="Rx">Rx</string>
+    <string name="Ry">Ry</string>
+    <string name="Rz">Rz</string>
+</resources>
