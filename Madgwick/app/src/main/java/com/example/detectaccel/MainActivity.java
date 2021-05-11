@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //センサー精度の変更を行うときに利用するメソッド
     }
 
-    public void madgwickFilter(float accel[], float gyro[], float mag[]){
+    public void madgwickFilter(float accel[], float gyro[], float mag[], float sampleFreq){
         //変数の宣言
         //クォータニオン
         float q0, q1, q2, q3,
@@ -127,6 +127,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //世界座標系から見た地磁気
         float hx, hy, hz;
 
+        //クォータニオンの変化率
+        float qDot1, qDot2, qDot3, qDot4;
+
+        //サンプリング周波数の逆数
+        float invSampleFreq = 1.0f / sampleFreq;
+
+        //論文と同じ値に設定している
+        float beta = 0.41f;
+
+        //ロール、ピッチ、ヨー角
+        float roll, pitch, yaw;
+
 
         //初期方位推定値（サンプルプログラムを参考にしている）
         q0 = 1;
@@ -139,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         ay = accel[1];
         az = accel[2];
         //加速度正規化
-        recipNorm = 1.0f / (float) (Math.sqrt(ax*ax + ay*ay + az*az));
+        recipNorm = invSqrt(ax*ax + ay*ay + az*az);
         ax *= recipNorm;
         ay *= recipNorm;
         az *= recipNorm;
@@ -149,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         my = mag[1];
         mz = mag[2];
         //地磁気正規化
-        recipNorm = 1.0f / (float) (Math.sqrt(mx*mx + my*my + mz*mz));
+        recipNorm = invSqrt(mx*mx + my*my + mz*mz);
         mx *= recipNorm;
         my *= recipNorm;
         mz *= recipNorm;
@@ -158,6 +170,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gx = gyro[0];
         gy = gyro[1];
         gz = gyro[2];
+
+        //ジャイロから求めたクォータニオンの変化率　(11)式より
+        qDot1 = 0.5f * (-q1 * gx - q2 * gy - q3 * gz);
+        qDot2 = 0.5f * (q0 * gx + q2 * gz - q3 * gy);
+        qDot3 = 0.5f * (q0 * gy - q1 * gz + q3 * gx);
+        qDot4 = 0.5f * (q0 * gz + q1 * gy - q2 * gx);
 
         //計算のための変数を用意
         _2q0mx = 2.0f * q0 * mx;
@@ -181,7 +199,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         q2q3 = q2 * q3;
         q3q3 = q3 * q3;
 
-        //地磁気の基準方向を求める
+        //地磁気の基準方向を求める(45)(46)式より
         hx = mx * q0q0 - _2q0my * q3 + _2q0mz * q2 + mx * q1q1 + _2q1 * my * q2 + _2q1 * mz * q3 - mx * q2q2 - mx * q3q3;
         hy = _2q0mx * q3 + my * q0q0 - _2q0mz * q1 + _2q1mx * q2 - my * q1q1 + my * q2q2 + _2q2 * mz * q3 - my * q3q3;
         _2bx = (float) Math.sqrt(hx * hx + hy * hy);
@@ -190,32 +208,48 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         _4bz = 2.0f * _2bz;
 
         //勾配降下法
-        //∇fを求める
+        //∇fを求める(31)(32)式より
         s0 = -_2q2 * (2.0f * q1q3 - _2q0q2 - ax) + _2q1 * (2.0f * q0q1 + _2q2q3 - ay) - _2bz * q2 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * q3 + _2bz * q1) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * q2 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
         s1 = _2q3 * (2.0f * q1q3 - _2q0q2 - ax) + _2q0 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * q1 * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + _2bz * q3 * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * q2 + _2bz * q0) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * q3 - _4bz * q1) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
         s2 = -_2q0 * (2.0f * q1q3 - _2q0q2 - ax) + _2q3 * (2.0f * q0q1 + _2q2q3 - ay) - 4.0f * q2 * (1 - 2.0f * q1q1 - 2.0f * q2q2 - az) + (-_4bx * q2 - _2bz * q0) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (_2bx * q1 + _2bz * q3) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + (_2bx * q0 - _4bz * q2) * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
         s3 = _2q1 * (2.0f * q1q3 - _2q0q2 - ax) + _2q2 * (2.0f * q0q1 + _2q2q3 - ay) + (-_4bx * q3 + _2bz * q1) * (_2bx * (0.5f - q2q2 - q3q3) + _2bz * (q1q3 - q0q2) - mx) + (-_2bx * q0 + _2bz * q2) * (_2bx * (q1q2 - q0q3) + _2bz * (q0q1 + q2q3) - my) + _2bx * q1 * (_2bx * (q0q2 + q1q3) + _2bz * (0.5f - q1q1 - q2q2) - mz);
         //正規化
-        recipNorm = 1.0f / (float) Math.sqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
+        recipNorm = invSqrt(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
         s0 *= recipNorm;
         s1 *= recipNorm;
         s2 *= recipNorm;
         s3 *= recipNorm;
 
+        //変化率の更新(33)式？
+        qDot1 -= beta * s0;
+        qDot2 -= beta * s1;
+        qDot3 -= beta * s2;
+        qDot4 -= beta * s3;
 
+        //クォータニオン変化率を積分してクォータニオンを求める
+        q0 += qDot1 * invSampleFreq;
+        q1 += qDot2 * invSampleFreq;
+        q2 += qDot3 * invSampleFreq;
+        q3 += qDot4 * invSampleFreq;
 
+        //クォータニオンを正規化する
+        recipNorm = invSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+        q0 *= recipNorm;
+        q1 *= recipNorm;
+        q2 *= recipNorm;
+        q3 *= recipNorm;
 
+        roll = (float) Math.atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2);
+        pitch = (float) Math.asin (-2.0f * (q1*q3 - q0*q2));
+        yaw = (float) Math.atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3);
 
-        //J_Tg(se_q^_est_t-1)
+    }
 
-
-
-        float ax = accel[0];
-        float ay = accel[1];
-        float az = accel[2];
-
-
-
+    //平方根の逆数を求める関数
+    public float invSqrt(float x) {
+        int i = Float.floatToRawIntBits(x);
+        float y = Float.intBitsToFloat(0x5f3759df - (i >> 1));
+        return y * (1.5F - 0.5F * x * y * y);
     }
 
 
