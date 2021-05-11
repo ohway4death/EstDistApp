@@ -1,4 +1,4 @@
-package com.example.detectaccel;
+package com.example.madgwick;
 
 import android.content.Context;
 

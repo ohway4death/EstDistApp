@@ -1,4 +1,4 @@
-package com.example.detectaccel;
+package com.example.madgwick;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -7,16 +7,16 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.SystemClock;
-import android.widget.Button;
 import android.widget.TextView;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
     private SensorManager sensorManager;
-    private Sensor accel;
+    private Sensor accel,mag,gyro;
     private TextView textViewTitle, textViewAx, textViewAy, textViewAz;
+    private TextView textViewMx, textViewMy, textViewMz;
+    private TextView textViewGx, textViewGy, textViewGz;
     private TextView textViewPeriod, textViewSpeed, textViewDistance;
 
     @Override
@@ -33,6 +33,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textViewAy = findViewById(R.id.text_view_Ay);
         textViewAz = findViewById(R.id.text_view_Az);
 
+        textViewMx = findViewById(R.id.text_view_Mx);
+        textViewMy = findViewById(R.id.text_view_My);
+        textViewMz = findViewById(R.id.text_view_Mz);
+
+        textViewGx = findViewById(R.id.text_view_Gx);
+        textViewGy = findViewById(R.id.text_view_Gy);
+        textViewGz = findViewById(R.id.text_view_Gz);
+
         textViewDistance = findViewById(R.id.distance);
         textViewSpeed = findViewById(R.id.speed);
         textViewPeriod = findViewById(R.id.period);
@@ -47,10 +55,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onResume();
         //getDefaultSensorは加速度センサがあるかどうか判断している
         accel = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mag = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        gyro = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+
         //イベント（ここでは加速度を計測したことを指す）が発生した際にイベントを受け取るListenerの登録
         //取得間隔はマイクロ秒単位で設定できるらしいが，加速度センサは無理らしい（https://akihito104.hatenablog.com/entry/2013/07/22/013000）を参照
         //3月11日時点で何度やっても取得時間が0.2秒より大きくできない，0.2秒が最大？
         sensorManager.registerListener(this, accel, (int) Math.pow(10, 5));
+        sensorManager.registerListener(this, mag, (int) Math.pow(10, 5));
+        sensorManager.registerListener(this, gyro, (int) Math.pow(10, 5));
     }
 
     @Override
@@ -64,9 +77,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float sensorAx = 0;
     float sensorAy = 0;
     float sensorAz = 0;
-    float sensorAx_bef = 0;
-    float sensorAy_bef = 0;
-    float sensorAz_bef = 0;
+
+    float sensorMx = 0;
+    float sensorMy = 0;
+    float sensorMz = 0;
+
+    float sensorGx = 0;
+    float sensorGy = 0;
+    float sensorGz = 0;
 
 
     @Override
@@ -91,9 +109,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 textViewAy.setText(String.format("%.3f",sensorAy));
                 textViewAz.setText(String.format("%.3f",sensorAz));
 
-                sensorAx_bef = sensorAx;
-                sensorAy_bef = sensorAy;
-                sensorAz_bef = sensorAz;
+                break;
+
+            case Sensor.TYPE_MAGNETIC_FIELD:
+
+                sensorMx = event.values[0];
+                sensorMy = event.values[1];
+                sensorMz = event.values[2];
+/*
+
+                float values_filter[] = calculateDistance(sensorAx, sensorAy, sensorAz, event.timestamp);
+                float values_origin[] = calculateDistance(event.values[0], event.values[1], event.values[2], event.timestamp);
+*/
+                textViewMx.setText(String.format("%.3f",sensorMx));
+                textViewMy.setText(String.format("%.3f",sensorMy));
+                textViewMz.setText(String.format("%.3f",sensorMz));
+
+                break;
+
+            case Sensor.TYPE_GYROSCOPE:
+
+                sensorGx = event.values[0];
+                sensorGy = event.values[1];
+                sensorGz = event.values[2];
+/*
+
+                float values_filter[] = calculateDistance(sensorAx, sensorAy, sensorAz, event.timestamp);
+                float values_origin[] = calculateDistance(event.values[0], event.values[1], event.values[2], event.timestamp);
+*/
+                textViewGx.setText(String.format("%.3f",sensorGx));
+                textViewGy.setText(String.format("%.3f",sensorGy));
+                textViewGz.setText(String.format("%.3f",sensorGz));
 
                 break;
         }
@@ -107,7 +153,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //センサー精度の変更を行うときに利用するメソッド
     }
 
-    public void madgwickFilter(float accel[], float gyro[], float mag[], float sampleFreq){
+    public float[] madgwickFilter(float accel[], float gyro[], float mag[], float sampleFreq){
         //変数の宣言
         //クォータニオン
         float q0, q1, q2, q3,
@@ -242,6 +288,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         roll = (float) Math.atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2);
         pitch = (float) Math.asin (-2.0f * (q1*q3 - q0*q2));
         yaw = (float) Math.atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3);
+
+        //角度を返す
+        float angle[] = {roll, pitch, yaw};
+
+        return angle;
 
     }
 
