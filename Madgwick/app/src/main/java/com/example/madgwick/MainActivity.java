@@ -7,6 +7,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.SystemClock;
 import android.widget.TextView;
 
 
@@ -18,6 +19,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private TextView textViewMx, textViewMy, textViewMz;
     private TextView textViewGx, textViewGy, textViewGz;
     private TextView textViewPeriod, textViewSpeed, textViewDistance;
+    private TextView textViewRoll, textViewPitch, textViewYaw;
+    private float time;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +48,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textViewSpeed = findViewById(R.id.speed);
         textViewPeriod = findViewById(R.id.period);
 
+        textViewRoll = findViewById(R.id.text_view_roll);
+        textViewPitch = findViewById(R.id.text_view_pitch);
+        textViewYaw = findViewById(R.id.text_view_yaw);
+
         //SystemClock.elapsedRealtimeNanos()はスマホが起動してからの時間を表示する，単位はナノ秒
         //period.setText((SystemClock.elapsedRealtimeNanos()/1e9)+"");
+
+        time = SystemClock.elapsedRealtimeNanos() / 1000000000;
     }
 
     @Override
@@ -61,9 +70,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //イベント（ここでは加速度を計測したことを指す）が発生した際にイベントを受け取るListenerの登録
         //取得間隔はマイクロ秒単位で設定できるらしいが，加速度センサは無理らしい（https://akihito104.hatenablog.com/entry/2013/07/22/013000）を参照
         //3月11日時点で何度やっても取得時間が0.2秒より大きくできない，0.2秒が最大？
-        sensorManager.registerListener(this, accel, (int) Math.pow(10, 5));
-        sensorManager.registerListener(this, mag, (int) Math.pow(10, 5));
-        sensorManager.registerListener(this, gyro, (int) Math.pow(10, 5));
+        sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, mag, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     @Override
@@ -86,6 +95,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float sensorGy = 0;
     float sensorGz = 0;
 
+    float[] sensorAccel = {sensorAx, sensorAy, sensorAz};
+    float[] sensorMagnet = {sensorMx, sensorMy, sensorMz};
+    float[] sensorGyro = {sensorGx, sensorGy, sensorGz};
+
+    float dif;
+
 
     @Override
     public void onSensorChanged(SensorEvent event){
@@ -97,54 +112,62 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         switch (event.sensor.getType()){
             case Sensor.TYPE_ACCELEROMETER:
 
-                sensorAx = event.values[0];
-                sensorAy = event.values[1];
-                sensorAz = event.values[2];
+                sensorAccel[0] = event.values[0];
+                sensorAccel[1] = event.values[1];
+                sensorAccel[2] = event.values[2];
 /*
 
                 float values_filter[] = calculateDistance(sensorAx, sensorAy, sensorAz, event.timestamp);
                 float values_origin[] = calculateDistance(event.values[0], event.values[1], event.values[2], event.timestamp);
 */
-                textViewAx.setText(String.format("%.3f",sensorAx));
-                textViewAy.setText(String.format("%.3f",sensorAy));
-                textViewAz.setText(String.format("%.3f",sensorAz));
+                textViewAx.setText(String.format("%.3f",sensorAccel[0]));
+                textViewAy.setText(String.format("%.3f",sensorAccel[1]));
+                textViewAz.setText(String.format("%.3f",sensorAccel[2]));
 
                 break;
 
             case Sensor.TYPE_MAGNETIC_FIELD:
 
-                sensorMx = event.values[0];
-                sensorMy = event.values[1];
-                sensorMz = event.values[2];
+                sensorMagnet[0] = event.values[0];
+                sensorMagnet[1] = event.values[1];
+                sensorMagnet[2] = event.values[2];
 /*
 
                 float values_filter[] = calculateDistance(sensorAx, sensorAy, sensorAz, event.timestamp);
                 float values_origin[] = calculateDistance(event.values[0], event.values[1], event.values[2], event.timestamp);
 */
-                textViewMx.setText(String.format("%.3f",sensorMx));
-                textViewMy.setText(String.format("%.3f",sensorMy));
-                textViewMz.setText(String.format("%.3f",sensorMz));
+                textViewMx.setText(String.format("%.3f",sensorMagnet[0]));
+                textViewMy.setText(String.format("%.3f",sensorMagnet[1]));
+                textViewMz.setText(String.format("%.3f",sensorMagnet[2]));
 
                 break;
 
             case Sensor.TYPE_GYROSCOPE:
 
-                sensorGx = event.values[0];
-                sensorGy = event.values[1];
-                sensorGz = event.values[2];
+                sensorGyro[0] = event.values[0];
+                sensorGyro[1] = event.values[1];
+                sensorGyro[2] = event.values[2];
 /*
 
                 float values_filter[] = calculateDistance(sensorAx, sensorAy, sensorAz, event.timestamp);
                 float values_origin[] = calculateDistance(event.values[0], event.values[1], event.values[2], event.timestamp);
 */
-                textViewGx.setText(String.format("%.3f",sensorGx));
-                textViewGy.setText(String.format("%.3f",sensorGy));
-                textViewGz.setText(String.format("%.3f",sensorGz));
+                textViewGx.setText(String.format("%.3f",sensorGyro[0]));
+                textViewGy.setText(String.format("%.3f",sensorGyro[1]));
+                textViewGz.setText(String.format("%.3f",sensorGyro[2]));
 
                 break;
         }
-
-
+        float timeStamp = event.timestamp / 1000000000;
+        dif = (timeStamp - time);
+        float[] rpy = madgwickFilter(sensorAccel, sensorGyro, sensorMagnet, 1.0f / dif);
+        textViewRoll.setText(String.format("%.3f", rpy[0]));
+        textViewPitch.setText(String.format("%.3f", rpy[1]));
+        textViewYaw.setText(String.format("%.3f", rpy[2]));
+        textViewPeriod.setText(String.format("%.6f", dif));
+        textViewSpeed.setText(String.format("%.3f", timeStamp));
+        textViewDistance.setText(String.format("%.3f", time));
+        time = timeStamp;
 
     }
 
