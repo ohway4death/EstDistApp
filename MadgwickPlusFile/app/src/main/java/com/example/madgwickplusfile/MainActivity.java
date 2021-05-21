@@ -11,10 +11,13 @@ import android.hardware.SensorManager;
 import android.os.SystemClock;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
@@ -28,7 +31,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private TextView textViewRoll, textViewPitch, textViewYaw;
     private float time;
 
-    private File file;
+    private File fileA, fileG, fileM;
+    private FileWriter fwA,fwG,fwM;
+    private PrintWriter pwA,pwG,pwM;
+    private Context context;
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,13 +74,92 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         time = SystemClock.elapsedRealtimeNanos() / 1000000000;
 
-        Context context = getApplicationContext();
-        String fileName = "TestFile.txt";
-        file = new File(context.getFilesDir(), fileName);
+        context = getApplicationContext();
+        String fileNameA = "accel.csv";
+        String fileNameG = "gyro.csv";
+        String fileNameM = "magnet.csv";
+        fileA = new File(context.getFilesDir(), fileNameA);
+        fileG = new File(context.getFilesDir(), fileNameG);
+        fileM = new File(context.getFilesDir(), fileNameM);
 
-        saveFile(String.valueOf(time));
+        try{
+            //引数はファイル名と書き込まれたデータを追加するかどうか決める、trueならファイルの最後に追記していく。
+            fwA = new FileWriter(fileA, true);
+            pwA = new PrintWriter(new BufferedWriter(fwA));
+            fwG = new FileWriter(fileG, true);
+            pwG = new PrintWriter(new BufferedWriter(fwG));
+            fwM = new FileWriter(fileM, true);
+            pwM = new PrintWriter(new BufferedWriter(fwM));
+
+            //ヘッダーを作成する
+            pwA.print("timeStamp");
+            pwA.print(",");
+            pwA.print("X_acc");
+            pwA.print(",");
+            pwA.print("Y_acc");
+            pwA.print(",");
+            pwA.print("Z_acc");
+            pwA.println();
+
+            pwG.print("timeStamp");
+            pwG.print(",");
+            pwG.print("X_gyro");
+            pwG.print(",");
+            pwG.print("Y_gyro");
+            pwG.print(",");
+            pwG.print("Z_gyro");
+            pwG.println();
+
+            pwM.print("timeStamp");
+            pwM.print(",");
+            pwM.print("X_mag");
+            pwM.print(",");
+            pwM.print("Y_mag");
+            pwM.print(",");
+            pwM.print("Z_mag");
+            pwM.println();
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
+        //saveFile(String.valueOf(time));
     }
 
+
+    /*
+    public void exportCsv(float[] accData, float timeStamp){
+        try{
+            //引数はファイル名と書き込まれたデータを追加するかどうか決める、trueならファイルの最後に追記していく。
+            FileWriter fw = new FileWriter(file, true);
+            PrintWriter pw = new PrintWriter(new BufferedWriter(fw));
+
+            //ヘッダーを作成する
+            pw.print("timeStamp");
+            pw.print(",");
+            pw.print("X_acc");
+            pw.print(",");
+            pw.print("Y_acc");
+            pw.print(",");
+            pw.print("Z_acc");
+            pw.println();
+
+            pw.print(timeStamp);
+            pw.print(",");
+            pw.print(accData[0]);
+            pw.print(",");
+            pw.print(accData[1]);
+            pw.print(",");
+            pw.print(accData[2]);
+            pw.println();
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+    */
+
+    /*
     public void saveFile(String str){
         try (FileWriter writer = new FileWriter(file)){
             writer.write(str);
@@ -80,7 +168,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             e.printStackTrace();
         }
     }
-
+    */
 
     @Override
     protected void onResume(){
@@ -97,6 +185,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, mag, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_NORMAL);
+
     }
 
     @Override
@@ -105,6 +194,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onPause();
         //Listenerの解除
         sensorManager.unregisterListener(this);
+
+        //ファイルを閉じる
+        pwA.close();
+        pwM.close();
+        pwG.close();
+        Toast.makeText(context, "file close", Toast.LENGTH_LONG).show();
+
     }
 
     float sensorAx = 0;
@@ -148,6 +244,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 textViewAy.setText(String.format("%.3f",sensorAccel[1]));
                 textViewAz.setText(String.format("%.3f",sensorAccel[2]));
 
+                pwA.print(event.timestamp);
+                pwA.print(",");
+                pwA.print(sensorAccel[0]);
+                pwA.print(",");
+                pwA.print(sensorAccel[1]);
+                pwA.print(",");
+                pwA.print(sensorAccel[2]);
+                pwA.println();
+
                 break;
 
             case Sensor.TYPE_MAGNETIC_FIELD:
@@ -164,6 +269,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 textViewMy.setText(String.format("%.3f",sensorMagnet[1]));
                 textViewMz.setText(String.format("%.3f",sensorMagnet[2]));
 
+                pwM.print(event.timestamp);
+                pwM.print(",");
+                pwM.print(sensorMagnet[0]);
+                pwM.print(",");
+                pwM.print(sensorMagnet[1]);
+                pwM.print(",");
+                pwM.print(sensorMagnet[2]);
+                pwM.println();
+
                 break;
 
             case Sensor.TYPE_GYROSCOPE:
@@ -179,6 +293,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 textViewGx.setText(String.format("%.3f",sensorGyro[0]));
                 textViewGy.setText(String.format("%.3f",sensorGyro[1]));
                 textViewGz.setText(String.format("%.3f",sensorGyro[2]));
+
+                pwG.print(event.timestamp);
+                pwG.print(",");
+                pwG.print(sensorGyro[0]);
+                pwG.print(",");
+                pwG.print(sensorGyro[1]);
+                pwG.print(",");
+                pwG.print(sensorGyro[2]);
+                pwG.println();
 
                 break;
         }

@@ -1,14 +1,23 @@
-package com.example.madgwick;
+package com.example.madgwickplusfile2;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.SystemClock;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
@@ -20,10 +29,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private TextView textViewGx, textViewGy, textViewGz;
     private TextView textViewPeriod, textViewSpeed, textViewDistance;
     private TextView textViewRoll, textViewPitch, textViewYaw;
-    private TextView textViewRoll2, textViewPitch2, textViewYaw2;
-
     private long time;
-    private float q0,q1,q2,q3;
+
+    private File file;
+    private FileWriter fw;
+    private PrintWriter pw;
+    private Context context;
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,19 +69,39 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textViewPitch = findViewById(R.id.text_view_pitch);
         textViewYaw = findViewById(R.id.text_view_yaw);
 
-        textViewRoll2 = findViewById(R.id.text_view_roll2);
-        textViewPitch2 = findViewById(R.id.text_view_pitch2);
-        textViewYaw2 = findViewById(R.id.text_view_yaw2);
-
         //SystemClock.elapsedRealtimeNanos()はスマホが起動してからの時間を表示する，単位はナノ秒
-        //period.setText((SystemClock.elapsedRealtimeNanos()/1e9)+"")
+        //period.setText((SystemClock.elapsedRealtimeNanos()/1e9)+"");
+
         time = SystemClock.elapsedRealtimeNanos();
 
-        //初期方位推定値（サンプルプログラムを参考にしている）
-        q0 = 1;
-        q1 = 0;
-        q2 = 0;
-        q3 = 0;
+        context = getApplicationContext();
+        String fileName = "MARG.csv";
+        file = new File(context.getFilesDir(), fileName);
+        try{
+            //引数はファイル名と書き込まれたデータを追加するかどうか決める、trueならファイルの最後に追記していく。
+            fw = new FileWriter(file, true);
+            pw = new PrintWriter(new BufferedWriter(fw));
+
+            //ヘッダーを作成する
+            pw.print("timeStamp");
+            pw.print(",");
+            pw.print("timeStampBefore");
+            pw.print(",");
+            pw.print("difference");
+            pw.print(",");
+            pw.print("sensorType");
+            pw.print(",");
+            pw.print("X");
+            pw.print(",");
+            pw.print("Y");
+            pw.print(",");
+            pw.print("Z");
+            pw.println();
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+
     }
 
     @Override
@@ -82,9 +116,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //イベント（ここでは加速度を計測したことを指す）が発生した際にイベントを受け取るListenerの登録
         //取得間隔はマイクロ秒単位で設定できるらしいが，加速度センサは無理らしい（https://akihito104.hatenablog.com/entry/2013/07/22/013000）を参照
         //3月11日時点で何度やっても取得時間が0.2秒より大きくできない，0.2秒が最大？
-        sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_UI);
-        sensorManager.registerListener(this, mag, SensorManager.SENSOR_DELAY_UI);
-        sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_UI);
+        sensorManager.registerListener(this, accel, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, mag, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, gyro, SensorManager.SENSOR_DELAY_NORMAL);
+
     }
 
     @Override
@@ -93,6 +128,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onPause();
         //Listenerの解除
         sensorManager.unregisterListener(this);
+
+        //ファイルを閉じる
+        pw.close();
+        Toast.makeText(context, "file close", Toast.LENGTH_LONG).show();
     }
 
     float sensorAx = 0;
@@ -111,6 +150,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float[] sensorMagnet = {sensorMx, sensorMy, sensorMz};
     float[] sensorGyro = {sensorGx, sensorGy, sensorGz};
 
+    float dif;
+
 
     @Override
     public void onSensorChanged(SensorEvent event){
@@ -125,11 +166,25 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sensorAccel[0] = event.values[0];
                 sensorAccel[1] = event.values[1];
                 sensorAccel[2] = event.values[2];
+/*
 
+                float values_filter[] = calculateDistance(sensorAx, sensorAy, sensorAz, event.timestamp);
+                float values_origin[] = calculateDistance(event.values[0], event.values[1], event.values[2], event.timestamp);
+*/
                 textViewAx.setText(String.format("%.3f",sensorAccel[0]));
                 textViewAy.setText(String.format("%.3f",sensorAccel[1]));
                 textViewAz.setText(String.format("%.3f",sensorAccel[2]));
 
+                /*
+                pwA.print(event.timestamp);
+                pwA.print(",");
+                pwA.print(sensorAccel[0]);
+                pwA.print(",");
+                pwA.print(sensorAccel[1]);
+                pwA.print(",");
+                pwA.print(sensorAccel[2]);
+                pwA.println();
+                 */
                 break;
 
             case Sensor.TYPE_MAGNETIC_FIELD:
@@ -137,10 +192,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sensorMagnet[0] = event.values[0];
                 sensorMagnet[1] = event.values[1];
                 sensorMagnet[2] = event.values[2];
+/*
 
+                float values_filter[] = calculateDistance(sensorAx, sensorAy, sensorAz, event.timestamp);
+                float values_origin[] = calculateDistance(event.values[0], event.values[1], event.values[2], event.timestamp);
+*/
                 textViewMx.setText(String.format("%.3f",sensorMagnet[0]));
                 textViewMy.setText(String.format("%.3f",sensorMagnet[1]));
                 textViewMz.setText(String.format("%.3f",sensorMagnet[2]));
+
+                /*
+                pwM.print(event.timestamp);
+                pwM.print(",");
+                pwM.print(sensorMagnet[0]);
+                pwM.print(",");
+                pwM.print(sensorMagnet[1]);
+                pwM.print(",");
+                pwM.print(sensorMagnet[2]);
+                pwM.println();
+
+                 */
 
                 break;
 
@@ -149,42 +220,56 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sensorGyro[0] = event.values[0];
                 sensorGyro[1] = event.values[1];
                 sensorGyro[2] = event.values[2];
+/*
 
+                float values_filter[] = calculateDistance(sensorAx, sensorAy, sensorAz, event.timestamp);
+                float values_origin[] = calculateDistance(event.values[0], event.values[1], event.values[2], event.timestamp);
+*/
                 textViewGx.setText(String.format("%.3f",sensorGyro[0]));
                 textViewGy.setText(String.format("%.3f",sensorGyro[1]));
                 textViewGz.setText(String.format("%.3f",sensorGyro[2]));
 
+                /*
+                pwG.print(event.timestamp);
+                pwG.print(",");
+                pwG.print(sensorGyro[0]);
+                pwG.print(",");
+                pwG.print(sensorGyro[1]);
+                pwG.print(",");
+                pwG.print(sensorGyro[2]);
+                pwG.println();
+
+                 */
+
                 break;
         }
-
-        float dif = diff_time(event.timestamp, time);
-        float[] rpy = madgwickFilter(sensorAccel, sensorGyro, sensorMagnet, 1.0F / dif);
-        textViewRoll.setText(String.valueOf(rpy[0]));
-        textViewPitch.setText(String.valueOf(rpy[1]));
-        textViewYaw.setText(String.valueOf(rpy[2]));
-
-        textViewRoll2.setText(String.valueOf(rpy[3]));
-        textViewPitch2.setText(String.valueOf(rpy[4]));
-        textViewYaw2.setText(String.valueOf(rpy[5]));
-
-        textViewPeriod.setText(String.valueOf(dif));
-        textViewSpeed.setText(String.valueOf(event.timestamp/1000000000F));
-        textViewDistance.setText(String.valueOf(time/1000000000F));
-
-        time = event.timestamp;
-
-        /*
         long timeStamp = event.timestamp;
-        double dif = (double)(timeStamp - time) / 1000000000;
-        float[] rpy = madgwickFilter(sensorAccel, sensorGyro, sensorMagnet, (float) (1.0d / dif));
-        textViewRoll.setText(String.format("%.3f", rpy[0]));
-        textViewPitch.setText(String.format("%.3f", rpy[1]));
-        textViewYaw.setText(String.format("%.3f", rpy[2]));
+        dif = (timeStamp - time) / 1000000000F;
+
+        pw.print(timeStamp + ",");
+        pw.print(time + ",");
+        pw.print(dif + ",");
+        pw.print(event.sensor.getType() + ",");
+        pw.print(event.values[0] + ",");
+        pw.print(event.values[1] + ",");
+        pw.print(event.values[2] + ",");
+        pw.println();
+
         textViewPeriod.setText(String.valueOf(dif));
         textViewSpeed.setText(String.valueOf(timeStamp));
         textViewDistance.setText(String.valueOf(time));
+
+
         time = timeStamp;
-        */
+
+        //float[] rpy = madgwickFilter(sensorAccel, sensorGyro, sensorMagnet, 1.0f / dif);
+        //textViewRoll.setText(String.format("%.3f", rpy[0]));
+        //textViewPitch.setText(String.format("%.3f", rpy[1]));
+        //textViewYaw.setText(String.format("%.3f", rpy[2]));
+        //textViewPeriod.setText(String.format("%.6f", dif));
+        //textViewSpeed.setText(String.format("%.3f", timeStamp));
+        //textViewDistance.setText(String.format("%.3f", time));
+
     }
 
     @Override
@@ -192,12 +277,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //センサー精度の変更を行うときに利用するメソッド
     }
 
-    public float diff_time(long time, long bef_time){
-        return (time - bef_time) / 1000000000F;
-    }
-
     public float[] madgwickFilter(float accel[], float gyro[], float mag[], float sampleFreq){
-        float ax, ay, az,
+        //変数の宣言
+        //クォータニオン
+        float q0, q1, q2, q3,
+                ax, ay, az,
                 gx, gy, gz,
                 mx, my, mz;
 
@@ -216,14 +300,21 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //クォータニオンの変化率
         float qDot1, qDot2, qDot3, qDot4;
 
+        //サンプリング周波数の逆数
+        float invSampleFreq = 1.0f / sampleFreq;
+
         //論文と同じ値に設定している
         float beta = 0.41f;
 
         //ロール、ピッチ、ヨー角
         float roll, pitch, yaw;
 
-        //サンプリング周波数の逆数
-        float invSampleFreq = 1.0f / sampleFreq;
+
+        //初期方位推定値（サンプルプログラムを参考にしている）
+        q0 = 1;
+        q1 = 0;
+        q2 = 0;
+        q3 = 0;
 
         //加速度代入
         ax = accel[0];
@@ -318,25 +409,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         q2 *= recipNorm;
         q3 *= recipNorm;
 
-        //サンプルプログラム通り
-        roll = (float) Math.toDegrees(Math.atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2));
-        pitch = (float) Math.toDegrees(Math.asin (-2.0f * (q1*q3 - q0*q2)));
-        yaw = (float) Math.toDegrees(Math.atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3));
-
-
-        //論文の式の通り、サンプルや下の普通に変換した場合と値が違った、ピッチが間違っている感じ、ヨーは正負が逆転していた
-        /*
-        roll = (float) Math.toDegrees(Math.atan2(2 * (q2 * q3 - q0 * q1), 2 * (q0 * q0 + q3 * q3) - 1));
-        pitch = (float) Math.toDegrees(-1.0f * Math.asin (2.0f * (q1 * q3 + q0 * q2)));
-        yaw = (float) Math.toDegrees(Math.atan2(2.0f * (q1 * q2 - q0 * q3), 2.0f * (q0 * q0 + q1 * q1) - 1));
-        */
-
-        //https://www.kazetest.com/vcmemo/quaternion/quaternion.htm これを参考にしてクォータニオンからオイラー角に変換した、サンプルプログラムと同じ値を示している
-        /*
-        float roll2 = (float) Math.toDegrees(Math.atan2(2 * (q0*q1 + q2*q3), q0*q0 - q1*q1 - q2*q2 + q3*q3));
-        float pitch2 = (float) Math.toDegrees(Math.asin(2 * (q0*q2 - q1*q3)));
-        float yaw2 = (float) Math.toDegrees(Math.atan2(2 * (q0*q3 + q1*q2), q0*q0 + q1*q1 - q2*q2 - q3*q3));
-        */
+        roll = (float) Math.atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2);
+        pitch = (float) Math.asin (-2.0f * (q1*q3 - q0*q2));
+        yaw = (float) Math.atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3);
 
         //角度を返す
         float angle[] = {roll, pitch, yaw};
