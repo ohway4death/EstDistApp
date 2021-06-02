@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private TextView textViewPeriod, textViewSpeed, textViewDistance;
     private TextView textViewRoll, textViewPitch, textViewYaw;
     private TextView textViewAxAft, textViewAyAft,textViewAzAft;
+    private TextView textViewAxGlo, textViewAyGlo,textViewAzGlo;
 
     private long time;
     private float q0,q1,q2,q3;
@@ -58,6 +59,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textViewAxAft = findViewById(R.id.text_view_Ax_aft);
         textViewAyAft = findViewById(R.id.text_view_Ay_aft);
         textViewAzAft = findViewById(R.id.text_view_Az_aft);
+
+        textViewAxGlo = findViewById(R.id.text_view_Ax_global);
+        textViewAyGlo = findViewById(R.id.text_view_Ay_global);
+        textViewAzGlo = findViewById(R.id.text_view_Az_global);
 
 
         //SystemClock.elapsedRealtimeNanos()はスマホが起動してからの時間を表示する，単位はナノ秒
@@ -168,9 +173,45 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textViewSpeed.setText(String.valueOf(event.timestamp/1000000000F));
         textViewDistance.setText(String.valueOf(time/1000000000F));
 
-        textViewAxAft.setText(String.valueOf(sensorAccel[0] - 9.8f * Math.sin(Math.toRadians(rpy[1]))));
-        textViewAyAft.setText(String.valueOf(sensorAccel[1] - 9.8f * Math.sin(Math.toRadians(rpy[0]))));
-        textViewAzAft.setText(String.valueOf(sensorAccel[2] - 9.8f * (float)(Math.cos(Math.toRadians(rpy[0])) + Math.cos(Math.toRadians(rpy[1])))));
+        double ax_before = sensorAccel[0] + 9.8f * Math.sin(Math.toRadians(rpy[1]));
+        double ay_before = sensorAccel[1] - 9.8f * Math.cos(Math.toRadians(rpy[1])) * Math.sin(Math.toRadians(rpy[0]));
+        double az_before = sensorAccel[2] - 9.8f * Math.cos(Math.toRadians(rpy[1])) * Math.cos(Math.toRadians(rpy[0]));
+
+        textViewAxAft.setText(String.valueOf(ax_before));
+        textViewAyAft.setText(String.valueOf(ay_before));
+        textViewAzAft.setText(String.valueOf(az_before));
+
+
+        double ax_global = Math.cos(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[1])) * (double) sensorAccel[0] +
+                          (Math.cos(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[1])) * Math.sin(Math.toRadians(rpy[0])) - Math.sin(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[0]))) * (double)sensorAccel[1] +
+                          (Math.cos(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[1])) * Math.cos(Math.toRadians(rpy[0])) + Math.sin(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[0]))) * (double)sensorAccel[2];
+
+        double ay_global = Math.sin(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[1])) * (double)sensorAccel[0] +
+                          (Math.sin(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[1])) * Math.sin(Math.toRadians(rpy[0])) + Math.cos(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[0]))) * (double)sensorAccel[1] +
+                          (Math.sin(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[1])) * Math.cos(Math.toRadians(rpy[0])) - Math.cos(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[0]))) * (double)sensorAccel[2];
+
+
+        double az_global = -Math.sin(Math.toRadians(rpy[1])) * (double)sensorAccel[0] +
+                            Math.cos(Math.toRadians(rpy[1])) * Math.sin(Math.toRadians(rpy[0])) * (double)sensorAccel[1] +
+                            Math.cos(Math.toRadians(rpy[1])) * Math.cos(Math.toRadians(rpy[0])) * (double)sensorAccel[2];
+
+        /*
+        double ax_global = Math.cos(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[1])) * ax_before +
+                (Math.cos(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[1])) * Math.cos(Math.toRadians(rpy[0])) - Math.sin(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[0]))) * ay_before +
+                (Math.cos(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[1])) * Math.cos(Math.toRadians(rpy[0])) + Math.sin(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[0]))) * az_before;
+
+        double ay_global = Math.sin(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[1])) * ax_before +
+                (Math.sin(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[1])) * Math.sin(Math.toRadians(rpy[0])) + Math.cos(Math.toRadians(rpy[2])) * Math.cos(Math.toRadians(rpy[0]))) * ay_before +
+                (Math.sin(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[1])) * Math.cos(Math.toRadians(rpy[0])) - Math.cos(Math.toRadians(rpy[2])) * Math.sin(Math.toRadians(rpy[0]))) * az_before;
+
+        double az_global = -Math.sin(Math.toRadians(rpy[1])) * ax_before +
+                Math.cos(Math.toRadians(rpy[1])) * Math.sin(Math.toRadians(rpy[0])) * ay_before +
+                Math.cos(Math.toRadians(rpy[1])) * Math.cos(Math.toRadians(rpy[0])) * az_before;
+         */
+
+        textViewAxGlo.setText(String.valueOf(ax_global));
+        textViewAyGlo.setText(String.valueOf(ay_global));
+        textViewAzGlo.setText(String.valueOf(az_global));
 
         time = event.timestamp;
 
@@ -251,12 +292,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gy = gyro[1];
         gz = gyro[2];
 
-        //ジャイロから求めたクォータニオンの変化率　(11)式より
-        qDot1 = 0.5f * (-q1 * gx - q2 * gy - q3 * gz);
-        qDot2 = 0.5f * (q0 * gx + q2 * gz - q3 * gy);
-        qDot3 = 0.5f * (q0 * gy - q1 * gz + q3 * gx);
-        qDot4 = 0.5f * (q0 * gz + q1 * gy - q2 * gx);
-
         //計算のための変数を用意
         _2q0mx = 2.0f * q0 * mx;
         _2q0my = 2.0f * q0 * my;
@@ -299,6 +334,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         s1 *= recipNorm;
         s2 *= recipNorm;
         s3 *= recipNorm;
+
+        //ジャイロから求めたクォータニオンの変化率　(11)式より
+        qDot1 = 0.5f * (-q1 * gx - q2 * gy - q3 * gz);
+        qDot2 = 0.5f * (q0 * gx + q2 * gz - q3 * gy);
+        qDot3 = 0.5f * (q0 * gy - q1 * gz + q3 * gx);
+        qDot4 = 0.5f * (q0 * gz + q1 * gy - q2 * gx);
 
         //変化率の更新(33)式？
         qDot1 -= beta * s0;
