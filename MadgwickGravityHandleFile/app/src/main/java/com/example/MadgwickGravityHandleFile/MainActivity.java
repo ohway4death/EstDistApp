@@ -13,7 +13,9 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -75,6 +77,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     ArrayList<Float> gyroYList = new ArrayList<>();
     ArrayList<Float> gyroZList = new ArrayList<>();
 
+    String[] spinnerItems = {
+            "walking1.csv",
+            "walking2.csv",
+            "walking3.csv",
+            "walking4.csv",
+            "walking5.csv"
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //アプリを起動した際に実行される部分
@@ -110,6 +120,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textViewAzGlo = findViewById(R.id.text_view_Az_global);
 
         textViewDist = findViewById(R.id.distance);
+
+        Spinner spinner = findViewById(R.id.spinner);
+        ArrayAdapter<String> adapter
+                = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, spinnerItems);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
 
         //Button startButton = findViewById(R.id.recordStartButton);
         //Button stopButton = findViewById(R.id.recordStopButton);
