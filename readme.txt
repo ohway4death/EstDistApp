@@ -1,0 +1,17 @@
+AccelFile センサ値の確認用
+checkProcessingtime　処理時間計測用
+checkSamplingTime　サンプリング間隔計測用
+DetectAccel　加速度のみ測定用
+EstDistSimpson　シンプソン則を使った距離測定
+EstimateDistance　台形法を使った距離測定＋グラフ表示
+LowPassFilter　ローパスフィルタの効果確認用
+Madwick　フィルタを使って姿勢推定
+MadwickGravityDist　フィルタを使って姿勢推定をして、重力加速度を排除したり、世界座標系に直したりする＋距離測定
+MadwickGravityFile フィルタを使って姿勢推定をして、重力加速度を排除したり、世界座標系に直したりする＋ファイル出力
+MadwickGravityHandle　フィルタを使って姿勢推定をして、重力加速度を排除したり、世界座標系に直したりする＋処理を分ける
+MadwickGravityHandleFile　フィルタを使って姿勢推定をして、重力加速度を排除したり、世界座標系に直したりする＋ファイル出力＋処理を分けている
+MadwickPlusFile　フィルタを使って姿勢推定＋ファイル出力
+MadwickPlusFile2　フィルタを使って姿勢推定＋ファイル出力
+MadwickPlusGravity　フィルタを使って姿勢推定をして、重力加速度を排除したり、世界座標系に直したりする
+SampleMadgwick　サンプルプログラムをそのままコピペしたバージョン
+

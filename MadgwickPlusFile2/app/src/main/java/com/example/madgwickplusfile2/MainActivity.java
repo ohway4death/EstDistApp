@@ -83,17 +83,23 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             //ヘッダーを作成する
             pw.print("timeStamp");
             pw.print(",");
-            pw.print("timeStampBefore");
+            pw.print("sensorAccelX");
             pw.print(",");
-            pw.print("difference");
+            pw.print("sensorAccelY");
             pw.print(",");
-            pw.print("sensorType");
+            pw.print("sensorAccelZ");
             pw.print(",");
-            pw.print("X");
+            pw.print("sensorMagnetX");
             pw.print(",");
-            pw.print("Y");
+            pw.print("sensorMagnetY");
             pw.print(",");
-            pw.print("Z");
+            pw.print("sensorMagnetZ");
+            pw.print(",");
+            pw.print("sensorGyroX");
+            pw.print(",");
+            pw.print("sensorGyroY");
+            pw.print(",");
+            pw.print("sensorGyroZ");
             pw.println();
 
         }catch (IOException e){
@@ -245,12 +251,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         dif = (timeStamp - time) / 1000000000F;
 
         pw.print(timeStamp + ",");
-        pw.print(time + ",");
-        pw.print(dif + ",");
-        pw.print(event.sensor.getType() + ",");
-        pw.print(event.values[0] + ",");
-        pw.print(event.values[1] + ",");
-        pw.print(event.values[2] + ",");
+        pw.print(sensorAccel[0] + ",");
+        pw.print(sensorAccel[1] + ",");
+        pw.print(sensorAccel[2] + ",");
+        pw.print(sensorMagnet[0] + ",");
+        pw.print(sensorMagnet[1] + ",");
+        pw.print(sensorMagnet[2] + ",");
+        pw.print(sensorGyro[0] + ",");
+        pw.print(sensorGyro[1] + ",");
+        pw.print(sensorGyro[2]);
         pw.println();
 
         textViewPeriod.setText(String.valueOf(dif));
