@@ -165,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 estDist = 0;
 
                 context = getApplicationContext();
-                String fileName = "stepMotionErrorCheck3Simpson.csv";
+                String fileName = "stepMotionErrorCheck4Simpson.csv";
                 file = new File(context.getFilesDir(), fileName);
                 try{
                     //引数はファイル名と書き込まれたデータを追加するかどうか決める、trueならファイルの最後に追記していく。
@@ -422,9 +422,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 float dif = diff_time(sampleTime, time);
                 //9軸センサ
-                //float rpy[] = orientation.madgwickFilter(sensorAccel, sensorGyro, sensorMagnet, 1.0F / dif);
+                float rpy[] = orientation.madgwickFilter(sensorAccel, sensorGyro, sensorMagnet, 1.0F / dif);
                 //６軸センサ
-                float rpy[] = orientation.madgwickFilterNoMag(sensorAccel, sensorGyro, 1.0F / dif);
+                //float rpy[] = orientation.madgwickFilterNoMag(sensorAccel, sensorGyro, 1.0F / dif);
 
 
                 textViewRoll.setText(String.valueOf(rpy[0]));
@@ -487,7 +487,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     startVelocityTime = sampleTimeAccel;
                     velocityTimeSaveFlag = false;
                 }
-/*
+
 
                 //4点のシンプソン
                 if(queueAccel.size() == 4){
@@ -506,7 +506,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                     startAccelTime = sampleTimeAccel;
                 }
-*/
+
+                /*
                 //3点のシンプソン
                 if(queueAccel.size() == 3){
                     saveVelo += distance.simpson3point(queueAccel, diff_time(sampleTimeAccel, startAccelTime));
@@ -525,6 +526,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                     startAccelTime = sampleTimeAccel;
                 }
+                */
 
 
 
@@ -609,6 +611,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
                  */
+
+                /*
                 double at = (sampleTimeAccel-startTime)/1000000000d;
                 double mt = (sampleTimeMagnet-startTime)/1000000000d;
                 double gt = (sampleTimeGyro-startTime)/1000000000d;
@@ -616,7 +620,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
                 Log.i("time",  at + ", "+ mt +", "+ gt +", "+ ct);
-
+                */
 /*
                 Log.i("accelTime", String.valueOf(sampleTimeAccel/1000000000));
                 Log.i("magnetTime", String.valueOf(sampleTimeMagnet));
