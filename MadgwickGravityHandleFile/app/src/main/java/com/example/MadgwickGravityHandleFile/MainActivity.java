@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Queue;
 
 
@@ -58,12 +59,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     Queue<Double> queueAccel = new ArrayDeque<>();
     Queue<Double> queueVelocity = new ArrayDeque<>();
+    Queue<Long> queueAccelTime = new ArrayDeque<>();
+    Queue<Long> queueVeloTime = new ArrayDeque<>();
     private double saveVelo=0;
     private double saveDist=0;
     private long startAccelTime = 0;
     private long startVelocityTime = 0;
     private boolean accelTimeSaveFlag = true;
     private boolean velocityTimeSaveFlag = true;
+    private boolean saveVeloOddFlag = false;
+    private boolean saveVeloEvenFlag = true;
+    private boolean saveDistOddFlag = false;
+    private boolean saveDistEvenFlag = true;
+    private double saveVeloOdd=0;
+    private double saveVeloEven=0;
+    private double saveDistOdd=0;
+    private double saveDistEven=0;
 
     private int calibrationFlag = 0;
     private float aveAx = 0;
@@ -475,9 +486,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 time = sampleTime;
 
+                //初期値を入れておく
+                if (accelTimeSaveFlag){
+                    queueAccel.add(0d);
+                    //queueAccel.add(0d);
+                    queueAccelTime.add(0L);
+                    //queueAccelTime.add(0L);
+                    queueVelocity.add(0d);
+                    //queueVelocity.add(0d);
+                    queueVeloTime.add(0L);
+                    //queueVeloTime.add(0L);
+                    accelTimeSaveFlag = false;
+                }
 
                 queueAccel.add(ay_global);
+                queueAccelTime.add(sampleTimeAccel);
 
+
+                /*
                 //最初の値を保存する
                 if (accelTimeSaveFlag){
                     startAccelTime = sampleTimeAccel;
@@ -487,8 +513,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     startVelocityTime = sampleTimeAccel;
                     velocityTimeSaveFlag = false;
                 }
+                 */
 
-
+/*
                 //4点のシンプソン
                 if(queueAccel.size() == 4){
                         saveVelo += distance.simpson4point(queueAccel, diff_time(sampleTimeAccel, startAccelTime));
@@ -507,7 +534,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     startAccelTime = sampleTimeAccel;
                 }
 
-                /*
+ */
+
+
                 //3点のシンプソン
                 if(queueAccel.size() == 3){
                     saveVelo += distance.simpson3point(queueAccel, diff_time(sampleTimeAccel, startAccelTime));
@@ -526,7 +555,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                     startAccelTime = sampleTimeAccel;
                 }
-                */
+
 
 
 

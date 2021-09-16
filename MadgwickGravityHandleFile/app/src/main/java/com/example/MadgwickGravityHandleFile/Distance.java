@@ -1,5 +1,6 @@
 package com.example.MadgwickGravityHandleFile;
 
+import java.util.Deque;
 import java.util.Queue;
 
 public class Distance {
@@ -16,16 +17,21 @@ public class Distance {
         return (array[0] + array[1]) * h / 2d;
     }
 
+
     //３点を使うシンプソン法
     public double simpson3point(Queue<Double> queue, float h){
         Double[] array = queue.toArray(new Double[2]);
-        return (array[0] + 4*array[1] + array[2]) * h /6d;
+        return (array[0] + 4d*array[1] + array[2]) * h /6d;
     }
 
     //4点を使うシンプソン法
     public double simpson4point(Queue<Double> queue, float h){
         Double[] array = queue.toArray(new Double[3]);
         return (array[0] + 3*array[1] + 3*array[2] + array[3]) * h / 8d;
+    }
+
+    public float diff_time(long time, long bef_time){
+        return (time - bef_time) / 1000000000F;
     }
 
 }
