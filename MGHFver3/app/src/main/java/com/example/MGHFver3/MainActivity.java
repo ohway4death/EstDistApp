@@ -11,6 +11,7 @@ import android.hardware.SensorManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -55,12 +57,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private boolean recordFrag = false;
 
-    ArrayBlockingQueue<Double> queueAccel = new ArrayBlockingQueue<>(3);
-    ArrayBlockingQueue<Double> queueVelocity = new ArrayBlockingQueue<>(3);
-    ArrayBlockingQueue<Long> queueTime = new ArrayBlockingQueue<>(3);
-    ArrayBlockingQueue<Double> queueDist = new ArrayBlockingQueue<>(3);
-    private boolean startFlag = true;
-    private boolean methodFlag;
+    final int queueSize = 4;
+
+    FixedSizeQueue queueAccel = new FixedSizeQueue(queueSize);
+    FixedSizeQueue queueVelocity = new FixedSizeQueue(queueSize);
+    FixedSizeLongQueue queueTime = new FixedSizeLongQueue(queueSize);
+    FixedSizeQueue queueDist = new FixedSizeQueue(queueSize);
+    private boolean startFlag = false;
+    private boolean resetFrag = false;
     private double saveVelo=0;
     private double saveDist=0;
 
@@ -207,6 +211,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 initTime = SystemClock.elapsedRealtimeNanos();
 
+                /*
+                //sampleTime-initTimeがマイナスになるのを防ぐため
+                sensorManager.unregisterListener(this);
+                sensorManager.registerListener(this, accel, 10000);
+                sensorManager.registerListener(this, mag, 10000);
+                sensorManager.registerListener(this, gyro, 10000);
+                 */
+
                 String choiceFileName = (String) fileSpinner.getSelectedItem();
                 String choiceMethodName = (String) methodSpinner.getSelectedItem();
                 
@@ -221,7 +233,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 saveVelo=0;
                 saveDist=0;
-                estDist=0;
 
                 context = getApplicationContext();
                 //String fileName = "testes.csv";
@@ -269,13 +280,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     pw.print("distance");
                     pw.println();
 
-
                 }catch (IOException e){
                     e.printStackTrace();
                 }
 
+                a=0;
+
                 Toast toastStart = Toast.makeText(getApplicationContext(), "Start Record!!", Toast.LENGTH_SHORT);
                 toastStart.show();
+
+
                 break;
 
             case R.id.recordStopButton:
@@ -286,6 +300,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 break;
 
             case R.id.resetButton:
+                //sensorManager.registerListener(this, accel, 10000);
+                //sensorManager.registerListener(this, mag, 10000);
+                //sensorManager.registerListener(this, gyro, 10000);
+
+                resetFrag = true;
 
                 initTime = SystemClock.elapsedRealtimeNanos();
 
@@ -298,10 +317,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 saveVelo=0;
                 saveDist=0;
-                estDist=0;
 
                 Toast toastReset = Toast.makeText(getApplicationContext(), "Reset", Toast.LENGTH_SHORT);
                 toastReset.show();
+
+
                 break;
         }
     }
@@ -361,7 +381,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     long sampleTime;
 
-    float[] rpy;
+    float[] rpy = {0,0,0};
+
+    int a = 0;
 
     @Override
     public void onSensorChanged(SensorEvent event){
@@ -372,16 +394,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         switch (event.sensor.getType()){
             case Sensor.TYPE_ACCELEROMETER:
 
-                sensorAccel[0] = event.values[0];
-                sensorAccel[1] = event.values[1];
-                sensorAccel[2] = event.values[2];
+                //sensorAccel[0] = event.values[0];
+                //sensorAccel[1] = event.values[1];
+                //sensorAccel[2] = event.values[2];
 
-                sampleTimeAccel = event.timestamp;
-                sampleTime = event.timestamp;
+                float a = 0.76f;
+
+                sensorAccel[0] = a * sensorAccel[0] + (1-a) * event.values[0];
+                sensorAccel[1] = a * sensorAccel[1] + (1-a) * event.values[1];
+                sensorAccel[2] = a * sensorAccel[2] + (1-a) * event.values[2];
 
                 //sensorAccelBef[0] = sensorAccel[0];
                 //sensorAccelBef[1] = sensorAccel[1];
                 //sensorAccelBef[2] = sensorAccel[2];
+
+                sampleTimeAccel = event.timestamp;
+                sampleTime = event.timestamp;
+
+                if (sampleTime-initTime < 0){
+                    initTime = sampleTime;
+                    Log.i("detectMinus", "detect");
+                    break;
+                }
+
+
+                if(a==0){
+                    Log.i("initTime--", String.valueOf(initTime));
+                    Log.i("sampleTime",String.valueOf(sampleTime));
+                    a=1;
+                }
 
                 textViewAx.setText(String.valueOf(sensorAccel[0]));
                 textViewAy.setText(String.valueOf(sensorAccel[1]));
@@ -443,10 +484,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     pw.print(ax_global + ",");
                     pw.print(ay_global + ",");
                     pw.print(az_global + ",");
-                    pw.print(getLastABQueue(queueVelocity) + ",");
-                    pw.print(getLastABQueue(queueDist));
+                    pw.print(queueVelocity.getLast() + ",");
+                    pw.print(queueDist.getLast());
                     pw.println();
                 }
+
 
                 break;
 
@@ -455,6 +497,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sensorMagnet[0] = event.values[0] ;
                 sensorMagnet[1] = event.values[1] ;
                 sensorMagnet[2] = event.values[2] ;
+
+                //sensorMagnet[0] = 0.85f * sensorMagnet[0] + 0.15f * event.values[0] ;
+                //sensorMagnet[1] = 0.85f * sensorMagnet[1] + 0.15f * event.values[1] ;
+                //sensorMagnet[2] = 0.85f * sensorMagnet[2] + 0.15f * event.values[2] ;
 
                 sampleTimeMagnet = event.timestamp;
                 sampleTime = event.timestamp;
@@ -473,6 +519,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sensorGyro[1] = event.values[1];
                 sensorGyro[2] = event.values[2];
 
+                //sensorGyro[0] = 0.85f * sensorGyro[0] + 0.15f * event.values[0];
+                //sensorGyro[1] = 0.85f * sensorGyro[1] + 0.15f * event.values[1];
+                //sensorGyro[2] = 0.85f * sensorGyro[2] + 0.15f * event.values[2];
+
                 sampleTimeGyro = event.timestamp;
                 sampleTime = event.timestamp;
 
@@ -486,31 +536,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void CalcDist(){
-        //初期値を入れておく
-        if (startFlag){
-            queueAccel.add(0d);
-            queueAccel.add(0d);
-            //queueAccel.add(0d);
-            //queueAccel.add(0d);
-
-            queueVelocity.add(0d);
-            queueVelocity.add(0d);
-            //queueVelocity.add(0d);
-            //queueVelocity.add(0d);
-
-            queueDist.add(0d);
-            queueDist.add(0d);
-            //queueDist.add(0d);
-            //queueDist.add(0d);
-
-            queueTime.add(0L);
-            queueTime.add(0L);
-            //queueTime.add(0L);
-            //queueTime.add(0L);
-
-            startFlag=false;
-        }
-
         queueAccel.add(ay_global);
         queueTime.add(sampleTime-initTime);
 /*
@@ -524,28 +549,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             queueDist.add(saveDist + queueDist.element());
         }
 */
-
+/*
         //3点のシンプソン(シンプソン則)
         if(queueAccel.size()==3){
             saveVelo = integral.simpson3point(queueAccel, queueTime);
-            queueVelocity.add(saveVelo + queueVelocity.element());
+            queueVelocity.add(saveVelo + queueVelocity.selectData(2));
         }
         if (queueVelocity.size()==3){
             saveDist = integral.simpson3point(queueVelocity,queueTime);
-            queueDist.add(saveDist + queueDist.element());
-        }
-
-/*
-        //4点のシンプソン（シンプソン3/8則）
-        if(queueAccel.size()==4){
-            saveVelo = distance.simpson4point(queueAccel, queueTime);
-            queueVelocity.add(saveVelo + queueVelocity.element());
-        }
-        if (queueVelocity.size()==4){
-            saveDist = distance.simpson4point(queueVelocity,queueTime);
-            queueDist.add(saveDist + queueDist.element());
+            queueDist.add(saveDist + queueDist.selectData(2));
         }
 */
+
+        //4点のシンプソン（シンプソン3/8則）
+        if(queueAccel.size()==4){
+            saveVelo = integral.simpson4point(queueAccel, queueTime);
+            queueVelocity.add(saveVelo + queueVelocity.selectData(2));
+        }
+        if (queueVelocity.size()==4){
+            saveDist = integral.simpson4point(queueVelocity,queueTime);
+            queueDist.add(saveDist + queueDist.selectData(2));
+        }
+
 /*
         //ブール則（5点）
         if(queueAccel.size()==5){
@@ -557,19 +582,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             queueDist.add(saveDist + queueDist.element());
         }
 */
-
-        queueAccel.remove();
-        queueTime.remove();
-        queueDist.remove();
-        queueVelocity.remove();
-
     }
 
 
     double ax_global, ay_global, az_global;
     double axNotGrav,ayNotGrav,azNotGrav;
 
-    double estDist = 0;
 
     long timeCaliculateStart, timeCaliculateEnd;
 
@@ -593,7 +611,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 textViewAyGlo.setText(String.valueOf(Math.round(ay_global * 100d)/100d));
                 textViewAzGlo.setText(String.valueOf(Math.round(az_global * 100d)/100d));
 
-                textViewDist.setText(String.valueOf(getLastABQueue(queueDist)));
+                textViewDist.setText(String.valueOf(Math.round(queueDist.getLast() * 1000d) / 1000d));
 
                 handler.postDelayed(this, 35);
 
@@ -612,9 +630,5 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return (time - bef_time) / 1000000000F;
     }
 
-    public double getLastABQueue(ArrayBlockingQueue<Double> ABQueue){
-        Double[] array = ABQueue.toArray(new Double[0]);
-        return array[array.length-1];
-    }
 
 }

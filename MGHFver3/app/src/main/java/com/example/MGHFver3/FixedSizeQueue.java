@@ -13,7 +13,7 @@ public class FixedSizeQueue{
         this.size = n;
         this.queue = new double[this.size];
         for(int i=0;i<this.size;i++){
-            this.queue[i] = 0;
+            this.queue[i] = 0d;
         }
     }
 
@@ -34,5 +34,14 @@ public class FixedSizeQueue{
         return this.queue[this.size - 1];
     }
 
+    double selectData(int num){ return this.queue[num-1]; }
+
+    int size(){ return this.queue.length; }
+
+    void clear(){
+        for(int i=0;i<this.size;i++){
+            this.queue[i] = 0d;
+        }
+    }
 
 }
