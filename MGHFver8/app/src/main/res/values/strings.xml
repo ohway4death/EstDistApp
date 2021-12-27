@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">MGHFver8</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="change">Change</string>
+    <string name="reset">Reset</string>
+    <string name="calibration">Calibration Now</string>
+</resources>

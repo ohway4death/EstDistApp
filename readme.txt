@@ -13,5 +13,16 @@ MadwickGravityHandleFile　フィルタを使って姿勢推定をして、重�
 MadwickPlusFile　フィルタを使って姿勢推定＋ファイル出力
 MadwickPlusFile2　フィルタを使って姿勢推定＋ファイル出力
 MadwickPlusGravity　フィルタを使って姿勢推定をして、重力加速度を排除したり、世界座標系に直したりする
+MGHDistance
+MGHF2
+MGHFver3
+MGHFver4　初期値が複数個にならないようにして距離を求める
+MGHFver5　X方向、Y方向、Z方向を合成して距離を求める,机の上など平らな場所での平行移動だと距離が測れてそう
+MGHFver6　補間をして中点を調整する
+MGHFver7  クォータニオンを使って座標変換を行う
+MGHFver8  静止状態のときのZ軸方向の加速度を重力加速度として取得し、それを世界座標系に変換したZ軸の加速度から減算する
+MGHSampleCalc 加速度を表しているエクセルファイルを元に距離を計算する場合
+MGHThreshold　
 SampleMadgwick　サンプルプログラムをそのままコピペしたバージョン
+
 

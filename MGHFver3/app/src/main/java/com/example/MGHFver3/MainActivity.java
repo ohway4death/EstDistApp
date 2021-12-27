@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private boolean recordFrag = false;
 
-    final int queueSize = 4;
+    final int queueSize = 3;
 
     FixedSizeQueue queueAccel = new FixedSizeQueue(queueSize);
     FixedSizeQueue queueVelocity = new FixedSizeQueue(queueSize);
@@ -211,13 +211,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                 initTime = SystemClock.elapsedRealtimeNanos();
 
-                /*
+
                 //sampleTime-initTimeがマイナスになるのを防ぐため
                 sensorManager.unregisterListener(this);
                 sensorManager.registerListener(this, accel, 10000);
                 sensorManager.registerListener(this, mag, 10000);
                 sensorManager.registerListener(this, gyro, 10000);
-                 */
+
 
                 String choiceFileName = (String) fileSpinner.getSelectedItem();
                 String choiceMethodName = (String) methodSpinner.getSelectedItem();
@@ -294,6 +294,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
             case R.id.recordStopButton:
                 recordFrag = false;
+                sensorManager.unregisterListener(this);
                 //sensorManager.unregisterListener(this);
                 Toast toastStop = Toast.makeText(getApplicationContext(), "Stop Record", Toast.LENGTH_SHORT);
                 toastStop.show();
@@ -307,6 +308,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 resetFrag = true;
 
                 initTime = SystemClock.elapsedRealtimeNanos();
+
+                sensorManager.unregisterListener(this);
+                sensorManager.registerListener(this, accel, 10000);
+                sensorManager.registerListener(this, mag, 10000);
+                sensorManager.registerListener(this, gyro, 10000);
 
                 queueAccel.clear();
                 queueTime.clear();
@@ -367,17 +373,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     float[] sensorMagnet = {sensorMx, sensorMy, sensorMz};
     float[] sensorGyro = {sensorGx, sensorGy, sensorGz};
 
-    float[] sensorAccelBef = {0, 0, 0};
-    float[] sensorGyroBef = {0, 0, 0};
-    double axNotGravBef = 0;
-    double ayNotGravBef = 0;
-    double azNotGravBef = 0;
     long sampleTimeAccel;
     long sampleTimeMagnet;
     long sampleTimeGyro;
-    long sampleTimeAccelBefore = 0;
-    long sampleTimeMagnetBefore = 0;
-    long sampleTimeGyroBefore = 0;
+
 
     long sampleTime;
 
@@ -390,9 +389,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //ここは頻繁に呼び出されるので処理は簡単にする
         //計算はここの外側で行う
         //センサーのイベントを処理する部分
+        Log.i("onSensorChangedTime",String.valueOf(SystemClock.elapsedRealtimeNanos()/1000000000d));
+
 
         switch (event.sensor.getType()){
             case Sensor.TYPE_ACCELEROMETER:
+                Log.i("AccelTime",String.valueOf(event.timestamp/1000000000d));
 
                 //sensorAccel[0] = event.values[0];
                 //sensorAccel[1] = event.values[1];
@@ -411,16 +413,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 sampleTimeAccel = event.timestamp;
                 sampleTime = event.timestamp;
 
-                if (sampleTime-initTime < 0){
-                    initTime = sampleTime;
-                    Log.i("detectMinus", "detect");
-                    break;
-                }
-
 
                 if(a==0){
-                    Log.i("initTime--", String.valueOf(initTime));
-                    Log.i("sampleTime",String.valueOf(sampleTime));
+                    //Log.i("initTime--", String.valueOf(initTime));
+                    //Log.i("sampleTime",String.valueOf(sampleTime/1000000000d));
                     a=1;
                 }
 
@@ -493,18 +489,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 break;
 
             case Sensor.TYPE_MAGNETIC_FIELD:
+                Log.i("MagnetTime",String.valueOf(event.timestamp/1000000000d));
 
                 sensorMagnet[0] = event.values[0] ;
                 sensorMagnet[1] = event.values[1] ;
                 sensorMagnet[2] = event.values[2] ;
 
-                //sensorMagnet[0] = 0.85f * sensorMagnet[0] + 0.15f * event.values[0] ;
-                //sensorMagnet[1] = 0.85f * sensorMagnet[1] + 0.15f * event.values[1] ;
-                //sensorMagnet[2] = 0.85f * sensorMagnet[2] + 0.15f * event.values[2] ;
-
                 sampleTimeMagnet = event.timestamp;
                 sampleTime = event.timestamp;
-
 
                 textViewMx.setText(String.valueOf(sensorMagnet[0]));
                 textViewMy.setText(String.valueOf(sensorMagnet[1]));
@@ -513,15 +505,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 break;
 
             case Sensor.TYPE_GYROSCOPE:
+                Log.i("GyroTime",String.valueOf(event.timestamp/1000000000d));
 
 
                 sensorGyro[0] = event.values[0];
                 sensorGyro[1] = event.values[1];
                 sensorGyro[2] = event.values[2];
-
-                //sensorGyro[0] = 0.85f * sensorGyro[0] + 0.15f * event.values[0];
-                //sensorGyro[1] = 0.85f * sensorGyro[1] + 0.15f * event.values[1];
-                //sensorGyro[2] = 0.85f * sensorGyro[2] + 0.15f * event.values[2];
 
                 sampleTimeGyro = event.timestamp;
                 sampleTime = event.timestamp;
@@ -536,7 +525,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void CalcDist(){
-        queueAccel.add(ay_global);
+        queueAccel.add(ax_global);
         queueTime.add(sampleTime-initTime);
 /*
         //台形則
@@ -549,7 +538,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             queueDist.add(saveDist + queueDist.element());
         }
 */
-/*
+
         //3点のシンプソン(シンプソン則)
         if(queueAccel.size()==3){
             saveVelo = integral.simpson3point(queueAccel, queueTime);
@@ -559,8 +548,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             saveDist = integral.simpson3point(queueVelocity,queueTime);
             queueDist.add(saveDist + queueDist.selectData(2));
         }
-*/
 
+/*
         //4点のシンプソン（シンプソン3/8則）
         if(queueAccel.size()==4){
             saveVelo = integral.simpson4point(queueAccel, queueTime);
@@ -570,7 +559,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             saveDist = integral.simpson4point(queueVelocity,queueTime);
             queueDist.add(saveDist + queueDist.selectData(2));
         }
-
+*/
 /*
         //ブール則（5点）
         if(queueAccel.size()==5){
